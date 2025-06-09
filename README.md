@@ -41,8 +41,4 @@ The creators and contributors to the libraries used in this project.
 
 For any queries regarding the project, please reach out through the Issues section on GitHub.
 
-## Contributors
-
-Sathish Prasad
-
 
