@@ -20,13 +20,9 @@ def is_vietnamese(text):
     vietnamese_pattern = re.compile(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]')
     return bool(vietnamese_pattern.search(str(text).lower()))
 
-def get_audio_url(song_name, artist_name):
-    # Create a URL-friendly filename
-    filename = f"{song_name}_{artist_name}".replace(' ', '_').lower()
-    filename = re.sub(r'[^a-z0-9_]', '', filename)
-    
-    # Return the Firebase Storage URL
-    return f"https://firebasestorage.googleapis.com/v0/b/melody-c1456.firebasestorage.app/o/song_files%2F{filename}.mp3?alt=media"
+def get_audio_url(song_name, artist_name, preview_url):
+    # Return Spotify preview URL if available, otherwise return empty string
+    return preview_url if preview_url else ''
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
@@ -76,7 +72,8 @@ def recommend():
         for rec in recommendations:
             song_name = str(rec.get('name', 'Unknown Song'))
             artist_name = str(rec.get('artists', 'Unknown Artist'))
-            audio_url = get_audio_url(song_name, artist_name)
+            preview_url = str(rec.get('preview_url', ''))
+            audio_url = get_audio_url(song_name, artist_name, preview_url)
             
             formatted_rec = {
                 'songId': str(rec.get('id', '')),
@@ -123,7 +120,7 @@ def recommend_by_genre():
         for rec in recommendations:
             song_name = str(rec.get('name', 'Unknown Song'))
             artist_name = str(rec.get('artists', 'Unknown Artist'))
-            audio_url = get_audio_url(song_name, artist_name)
+            audio_url = get_audio_url(song_name, artist_name, '')
             
             formatted_rec = {
                 'songId': str(rec.get('id', '')),
