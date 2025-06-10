@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from flask_cors import CORS
 import re
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -18,6 +19,14 @@ def is_vietnamese(text):
     # Vietnamese character patterns
     vietnamese_pattern = re.compile(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]')
     return bool(vietnamese_pattern.search(str(text).lower()))
+
+def get_audio_url(song_name, artist_name):
+    # Create a URL-friendly filename
+    filename = f"{song_name}_{artist_name}".replace(' ', '_').lower()
+    filename = re.sub(r'[^a-z0-9_]', '', filename)
+    
+    # Return the Firebase Storage URL
+    return f"https://firebasestorage.googleapis.com/v0/b/melody-c1456.firebasestorage.app/o/song_files%2F{filename}.mp3?alt=media"
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
@@ -65,13 +74,17 @@ def recommend():
         # Format recommendations to match Song model
         formatted_recommendations = []
         for rec in recommendations:
+            song_name = str(rec.get('name', 'Unknown Song'))
+            artist_name = str(rec.get('artists', 'Unknown Artist'))
+            audio_url = get_audio_url(song_name, artist_name)
+            
             formatted_rec = {
                 'songId': str(rec.get('id', '')),
-                'songName': str(rec.get('name', 'Unknown Song')),
+                'songName': song_name,
                 'artistId': str(rec.get('artist_id', '')),
-                'artistName': str(rec.get('artists', 'Unknown Artist')),
+                'artistName': artist_name,
                 'songImagePath': str(rec.get('image_url', '')),
-                'audioPath': str(rec.get('preview_url', '')),
+                'audioPath': audio_url,
                 'genre': str(rec.get('genre', 'pop')),
                 'acousticness': float(rec.get('acousticness', 0.0)),
                 'danceability': float(rec.get('danceability', 0.0)),
@@ -108,13 +121,17 @@ def recommend_by_genre():
         # Format recommendations to match Song model
         formatted_recommendations = []
         for rec in recommendations:
+            song_name = str(rec.get('name', 'Unknown Song'))
+            artist_name = str(rec.get('artists', 'Unknown Artist'))
+            audio_url = get_audio_url(song_name, artist_name)
+            
             formatted_rec = {
                 'songId': str(rec.get('id', '')),
-                'songName': str(rec.get('name', 'Unknown Song')),
+                'songName': song_name,
                 'artistId': str(rec.get('artist_id', '')),
-                'artistName': str(rec.get('artists', 'Unknown Artist')),
+                'artistName': artist_name,
                 'songImagePath': str(rec.get('image_url', '')),
-                'audioPath': str(rec.get('preview_url', '')),
+                'audioPath': audio_url,
                 'genre': str(rec.get('genre', 'pop')),
                 'acousticness': float(rec.get('acousticness', 0.0)),
                 'danceability': float(rec.get('danceability', 0.0)),
