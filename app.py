@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from flask_cors import CORS
+import re
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -14,14 +15,34 @@ features = ['acousticness', 'danceability', 'energy', 'instrumentalness',
 X = df[features].values
 
 def is_vietnamese(text):
-    # Check if text contains Vietnamese characters
-    vietnamese_chars = set('àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ')
-    return any(char in vietnamese_chars for char in str(text).lower())
+    # Vietnamese character patterns
+    vietnamese_pattern = re.compile(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]')
+    return bool(vietnamese_pattern.search(str(text).lower()))
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
     try:
         data = request.json
+        input_song_name = data.get('songName', '')
+        is_input_vietnamese = is_vietnamese(input_song_name)
+        
+        print(f"Input song: {input_song_name}")
+        print(f"Is Vietnamese: {is_input_vietnamese}")
+        
+        # Filter songs by language first
+        if is_input_vietnamese:
+            df_filtered = df[df['name'].apply(is_vietnamese)]
+        else:
+            df_filtered = df[~df['name'].apply(is_vietnamese)]
+            
+        if len(df_filtered) == 0:
+            print("No songs found in the specified language")
+            return jsonify([])
+            
+        # Get features for filtered songs
+        X_filtered = df_filtered[features].values
+        
+        # Get input features
         song_features = np.array([[
             float(data['acousticness']),
             float(data['danceability']),
@@ -34,42 +55,40 @@ def recommend():
             float(data['valence'])
         ]])
         
-        # Calculate similarity
-        similarity = cosine_similarity(song_features, X)
+        # Calculate similarity only for filtered songs
+        similarity = cosine_similarity(song_features, X_filtered)
         similar_indices = similarity[0].argsort()[-6:-1][::-1]
         
         # Get recommended songs
-        recommendations = df.iloc[similar_indices].to_dict('records')
+        recommendations = df_filtered.iloc[similar_indices].to_dict('records')
         
-        # Filter recommendations to match the language of the input song
-        input_song_name = data.get('songName', '')
-        is_input_vietnamese = is_vietnamese(input_song_name)
-        
-        filtered_recommendations = []
+        # Format recommendations to match Song model
+        formatted_recommendations = []
         for rec in recommendations:
-            if is_vietnamese(rec.get('name', '')) == is_input_vietnamese:
-                formatted_rec = {
-                    'songId': str(rec.get('id', '')),
-                    'songName': str(rec.get('name', 'Unknown Song')),
-                    'artistId': str(rec.get('artist_id', '')),
-                    'artistName': str(rec.get('artists', 'Unknown Artist')),
-                    'songImagePath': str(rec.get('image_url', '')),
-                    'audioPath': str(rec.get('preview_url', '')),
-                    'genre': str(rec.get('genre', 'pop')),
-                    'acousticness': float(rec.get('acousticness', 0.0)),
-                    'danceability': float(rec.get('danceability', 0.0)),
-                    'energy': float(rec.get('energy', 0.0)),
-                    'instrumentalness': float(rec.get('instrumentalness', 0.0)),
-                    'liveness': float(rec.get('liveness', 0.0)),
-                    'loudness': float(rec.get('loudness', 0.0)),
-                    'speechiness': float(rec.get('speechiness', 0.0)),
-                    'tempo': float(rec.get('tempo', 0.0)),
-                    'valence': float(rec.get('valence', 0.0))
-                }
-                filtered_recommendations.append(formatted_rec)
+            formatted_rec = {
+                'songId': str(rec.get('id', '')),
+                'songName': str(rec.get('name', 'Unknown Song')),
+                'artistId': str(rec.get('artist_id', '')),
+                'artistName': str(rec.get('artists', 'Unknown Artist')),
+                'songImagePath': str(rec.get('image_url', '')),
+                'audioPath': str(rec.get('preview_url', '')),
+                'genre': str(rec.get('genre', 'pop')),
+                'acousticness': float(rec.get('acousticness', 0.0)),
+                'danceability': float(rec.get('danceability', 0.0)),
+                'energy': float(rec.get('energy', 0.0)),
+                'instrumentalness': float(rec.get('instrumentalness', 0.0)),
+                'liveness': float(rec.get('liveness', 0.0)),
+                'loudness': float(rec.get('loudness', 0.0)),
+                'speechiness': float(rec.get('speechiness', 0.0)),
+                'tempo': float(rec.get('tempo', 0.0)),
+                'valence': float(rec.get('valence', 0.0))
+            }
+            formatted_recommendations.append(formatted_rec)
         
-        return jsonify(filtered_recommendations)
+        print(f"Found {len(formatted_recommendations)} recommendations")
+        return jsonify(formatted_recommendations)
     except Exception as e:
+        print(f"Error in recommend: {str(e)}")
         return jsonify({'error': str(e)}), 400
 
 @app.route('/recommend_by_genre', methods=['POST'])
