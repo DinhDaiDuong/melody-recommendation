@@ -35,7 +35,31 @@ def recommend():
         
         # Get recommended songs
         recommendations = df.iloc[similar_indices].to_dict('records')
-        return jsonify(recommendations)
+        
+        # Format recommendations to match Song model
+        formatted_recommendations = []
+        for rec in recommendations:
+            formatted_rec = {
+                'songId': str(rec.get('id', '')),
+                'songName': str(rec.get('name', 'Unknown Song')),
+                'artistId': str(rec.get('artist_id', '')),
+                'artistName': str(rec.get('artists', 'Unknown Artist')),
+                'songImagePath': str(rec.get('image_url', '')),
+                'audioPath': str(rec.get('preview_url', '')),
+                'genre': str(rec.get('genre', 'pop')),
+                'acousticness': float(rec.get('acousticness', 0.0)),
+                'danceability': float(rec.get('danceability', 0.0)),
+                'energy': float(rec.get('energy', 0.0)),
+                'instrumentalness': float(rec.get('instrumentalness', 0.0)),
+                'liveness': float(rec.get('liveness', 0.0)),
+                'loudness': float(rec.get('loudness', 0.0)),
+                'speechiness': float(rec.get('speechiness', 0.0)),
+                'tempo': float(rec.get('tempo', 0.0)),
+                'valence': float(rec.get('valence', 0.0))
+            }
+            formatted_recommendations.append(formatted_rec)
+        
+        return jsonify(formatted_recommendations)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
@@ -47,7 +71,31 @@ def recommend_by_genre(genre):
             return jsonify({'error': 'Genre not found'}), 404
             
         recommendations = genre_songs.sample(n=min(5, len(genre_songs))).to_dict('records')
-        return jsonify(recommendations)
+        
+        # Format recommendations to match Song model
+        formatted_recommendations = []
+        for rec in recommendations:
+            formatted_rec = {
+                'songId': str(rec.get('id', '')),
+                'songName': str(rec.get('name', 'Unknown Song')),
+                'artistId': str(rec.get('artist_id', '')),
+                'artistName': str(rec.get('artists', 'Unknown Artist')),
+                'songImagePath': str(rec.get('image_url', '')),
+                'audioPath': str(rec.get('preview_url', '')),
+                'genre': str(rec.get('genre', 'pop')),
+                'acousticness': float(rec.get('acousticness', 0.0)),
+                'danceability': float(rec.get('danceability', 0.0)),
+                'energy': float(rec.get('energy', 0.0)),
+                'instrumentalness': float(rec.get('instrumentalness', 0.0)),
+                'liveness': float(rec.get('liveness', 0.0)),
+                'loudness': float(rec.get('loudness', 0.0)),
+                'speechiness': float(rec.get('speechiness', 0.0)),
+                'tempo': float(rec.get('tempo', 0.0)),
+                'valence': float(rec.get('valence', 0.0))
+            }
+            formatted_recommendations.append(formatted_rec)
+        
+        return jsonify(formatted_recommendations)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
