@@ -22,7 +22,11 @@ def is_vietnamese(text):
 
 def get_audio_url(song_name, artist_name, preview_url):
     # Return Spotify preview URL if available, otherwise return empty string
-    return preview_url if preview_url else ''
+    if pd.isna(preview_url) or preview_url == '':
+        print(f"No preview URL available for {song_name}")
+        return ''
+    print(f"Using Spotify preview URL for {song_name}: {preview_url}")
+    return preview_url
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
@@ -72,7 +76,7 @@ def recommend():
         for rec in recommendations:
             song_name = str(rec.get('name', 'Unknown Song'))
             artist_name = str(rec.get('artists', 'Unknown Artist'))
-            preview_url = str(rec.get('preview_url', ''))
+            preview_url = rec.get('preview_url', '')
             audio_url = get_audio_url(song_name, artist_name, preview_url)
             
             formatted_rec = {
