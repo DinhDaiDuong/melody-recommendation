@@ -64,12 +64,36 @@ def recommend():
             float(data['valence'])
         ]])
         
-        # Calculate similarity only for filtered songs
+        # Calculate similarity for all songs
         similarity = cosine_similarity(song_features, X_filtered)
-        similar_indices = similarity[0].argsort()[-6:-1][::-1]
+        
+        # Get top 20 similar songs
+        similar_indices = similarity[0].argsort()[-20:][::-1]
+        
+        # Filter out songs with same name or artist
+        seen_names = set()
+        seen_artists = set()
+        filtered_indices = []
+        
+        for idx in similar_indices:
+            song = df_filtered.iloc[idx]
+            song_name = song['name'].lower()
+            artist = song['artists'].strip("[]'").split(',')[0].lower()
+            
+            # Skip if we've seen this song name or artist before
+            if song_name in seen_names or artist in seen_artists:
+                continue
+                
+            seen_names.add(song_name)
+            seen_artists.add(artist)
+            filtered_indices.append(idx)
+            
+            # Stop when we have 5 unique songs
+            if len(filtered_indices) >= 5:
+                break
         
         # Get recommended songs
-        recommendations = df_filtered.iloc[similar_indices].to_dict('records')
+        recommendations = df_filtered.iloc[filtered_indices].to_dict('records')
         
         # Format recommendations to match Song model
         formatted_recommendations = []
@@ -77,6 +101,7 @@ def recommend():
             song_name = str(rec.get('name', 'Unknown Song'))
             artist_name = str(rec.get('artists', 'Unknown Artist'))
             preview_url = rec.get('preview_url', '')
+            spotify_id = rec.get('spotify_id', '')
             audio_url = get_audio_url(song_name, artist_name, preview_url)
             
             formatted_rec = {
@@ -86,6 +111,7 @@ def recommend():
                 'artistName': artist_name,
                 'songImagePath': str(rec.get('image_url', '')),
                 'audioPath': audio_url,
+                'spotifyId': spotify_id,  # Add Spotify ID for opening in Spotify
                 'genre': str(rec.get('genre', 'pop')),
                 'acousticness': float(rec.get('acousticness', 0.0)),
                 'danceability': float(rec.get('danceability', 0.0)),
@@ -99,7 +125,7 @@ def recommend():
             }
             formatted_recommendations.append(formatted_rec)
         
-        print(f"Found {len(formatted_recommendations)} recommendations")
+        print(f"Found {len(formatted_recommendations)} unique recommendations")
         return jsonify(formatted_recommendations)
     except Exception as e:
         print(f"Error in recommend: {str(e)}")
